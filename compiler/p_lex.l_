@@ -1,0 +1,159 @@
+%{
+#include <cstdlib>
+#include <cerrno>
+#include <climits>
+#include <string>
+#include "parser.h"
+#include "p_yacc.hh"
+
+#define	YY_DECL \
+  yy::p_yacc::token_type yylex(yy::p_yacc::semantic_type* yylval, yy::p_yacc::location_type* yylloc, parser& p)
+YY_DECL;
+
+#undef yywrap
+#define yywrap() 1
+
+#define yyterminate()	return yy::p_yacc::token::TK_EOF
+%}
+
+%option noyywrap nounput batch
+%option never-interactive
+%option noyy_scan_buffer
+%option noyy_scan_bytes
+%option noyy_scan_string
+%option nounistd
+
+SID		[a-z][_a-zA-Z0-9]*
+LID		[_A-Z][_a-zA-Z0-9]*
+PID		${SID}
+INT		[1-9][0-9]*
+FLOAT	[0-9]+\.[0-9]+
+BLANK	[ \t]
+
+%x S_LINECOMMENT
+%x S_STRING
+%x S_QUOTEDNAME
+
+%{
+#define YY_USER_ACTION yylloc->columns(yyleng);
+%}
+
+%%
+
+%{
+typedef yy::p_yacc::token token;
+yylloc->step();
+std::string string_buffer;
+%}
+
+<INITIAL>{
+	[-+*/=|:(){}<>\[\],.]	{ return yy::p_yacc::token_type(yytext[0]); }
+
+	"&&"			return token::TK_AND;
+	"||"			return token::TK_OR;
+	"=="			return token::TK_EQ;
+	"\\="			return token::TK_NE;
+	">="			return token::TK_GE;
+	"=<"			return token::TK_LE;
+	":-"			return token::TK_RULE;
+	"mod"			return token::TK_MOD;
+
+	{SID}			{ yylval->sval=new std::string(yytext); return token::TK_SID; }
+	{LID}			{ yylval->sval=new std::string(yytext); return token::TK_LID; }
+	{PID}			{ yylval->sval=new std::string(yytext); return token::TK_PID; }
+	{FLOAT}			{ yylval->fval=atof(yytext); return token::TK_FVAL; }
+	{INT}			{ yylval->ival=atoi(yytext); return token::TK_IVAL; }
+	"0"				{ yylval->ival=0; return token::TK_IVAL; }
+	{BLANK}+		{ }
+	"\r"			{ }
+	"\n"			{ yylloc->lines(); }
+	"#"				{ yylloc->step(); BEGIN(S_LINECOMMENT); }
+	"\""			{ yylloc->step(); BEGIN(S_STRING); }
+	"'"				{ yylloc->step(); BEGIN(S_QUOTEDNAME); }
+	.				{ p.error(*yylloc, "illigal charactor."); }
+}
+
+<S_LINECOMMENT>{
+	"\r"			{ }
+	[^\n]*			{ }
+	"\n"			{
+						yylloc->lines();
+						yylloc->step();
+						BEGIN(INITIAL);
+					}
+}
+
+<S_STRING>{
+	"\n"			{
+						yylloc->lines();
+						p.error(*yylloc, "string is not close.");
+						string_buffer.clear();
+						BEGIN(INITIAL);
+					}
+	<<EOF>>			{
+						p.error(*yylloc, "string is not close");
+						string_buffer.clear();
+						BEGIN(INITIAL);
+					}
+	([\x81-\x9f\xe0-\xef][\x40-\x7e\x80-\xfc])+	{
+						string_buffer += yytext;
+					}
+	[^\\\n"]+		{ string_buffer += yytext; }
+	"\\\n"			{ yylloc->lines(); }
+	\\[^\n]			{
+						switch (yytext[yyleng-1]) {
+						  case 'n':
+							string_buffer += '\n';
+							break;
+						  default:
+							string_buffer += yytext[yyleng-1];
+							break;
+						}
+					}
+	"\""			{
+						BEGIN(INITIAL);
+						yylval->sval = new std::string(string_buffer);
+						string_buffer.clear();
+						return token::TK_SVAL;
+					}
+}
+
+<S_QUOTEDNAME>{
+	"\n"			{
+						yylloc->lines();
+						p.error(*yylloc, "quoted name is not close.");
+						string_buffer.clear();
+						BEGIN(INITIAL);
+					}
+	<<EOF>>			{
+						p.error(*yylloc, "quoted name is not close");
+						string_buffer.clear();
+						BEGIN(INITIAL);
+					}
+	([\x81-\x9f\xe0-\xef][\x40-\x7e\x80-\xfc])+	{
+						string_buffer += yytext;
+					}
+	[^\\\n']+		{ string_buffer += yytext; }
+	"'"				{
+						BEGIN(INITIAL);
+						yylval->sval = new std::string(string_buffer);
+						string_buffer.clear();
+						return token::TK_SID;
+					}
+}
+
+%%
+
+using namespace std;
+void parser::init_yy(const string& name)
+{
+	if ((yyin = fopen(name.c_str(), "r")) == 0){
+		error(name + " cannot open.");
+	}
+}
+
+void parser::finit_yy()
+{
+	fclose(yyin);
+	yylex_destroy();
+}

@@ -1,0 +1,31 @@
+メモリプールもマルチスレッド化する必要がある
+・スレッドごとにプールを用意する
+・new/deleteする場合は自分のプールから行う
+・転送されたアトムも気にせず自分のプールに返却する
+
+スレッド情報を引数に追加した時点で2%程度の性能低下
+グローバル変数でなくスレッド情報中のアトムリスト等を参照するように変更した時点で
+10%程度の性能低下
+
+$ for i in 1 2 3; do time input/base/genappend3-old.exe ; done
+real    0m4.985s
+real    0m4.934s
+real    0m4.968s
+
+$ for i in 1 2 3; do time input/base/genappend3.exe ; done
+real    0m5.407s
+real    0m5.358s
+real    0m5.355s
+
+
+p_deref_pc みたいなのを使うか p_int_deref みたいなのを使うか
+後者の方が型を決めやすいかも？
+
+p_int_deref
+p_int_eq
+int_add
+int_set
+
+p_bool_deref
+p_bool_eq
+bool_not

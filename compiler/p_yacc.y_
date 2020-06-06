@@ -1,0 +1,208 @@
+%skeleton "lalr1.cc"
+%define "parser_class_name" "p_yacc"
+%defines
+
+%{
+#include <string>
+#include <vector>
+#include "parser.h"
+#include "utility.h"
+%}
+
+// The parsing context.
+%parse-param { parser& p }
+%lex-param   { parser& p }
+%locations
+
+// %debug
+%error-verbose
+
+// Symbols.
+%union
+{
+	int ival;
+	double fval;
+	std::string* sval;
+	p_node::p_base* nval;
+	std::vector<p_node::p_base*>* aval;
+}
+
+%{
+yy::p_yacc::token_type yylex(yy::p_yacc::semantic_type* yylval, yy::p_yacc::location_type* yylloc, parser& p);
+%}
+
+%token        TK_EOF         0
+%token <ival> TK_IVAL
+%token <fval> TK_FVAL
+%token <sval> TK_SVAL
+%token <sval> TK_SID
+%token <sval> TK_LID
+%token <sval> TK_PID
+%token        TK_AND	"&&"
+%token        TK_OR		"||"
+%token        TK_EQ		"=="
+%token        TK_NE		"\\="
+%token        TK_GE		">="
+%token        TK_LE		"=<"
+%token        TK_MOD	"mod"
+%token        TK_RULE	":-"
+
+%type <aval> statement_n
+%type <nval> statement
+%type <aval> graph_z
+%type <aval> graph_n
+%type <nval> graph
+%type <nval> atom
+%type <nval> rule
+%type <aval> link_z
+%type <aval> link_n
+%type <nval> link
+
+%destructor { delete $$; } TK_SID
+%destructor { delete $$; } TK_LID
+%destructor { delete $$; } TK_PID
+%destructor { delete_vector($$); } statement_n
+%destructor { delete $$; } statement
+%destructor { delete_vector($$); } graph_z
+%destructor { delete_vector($$); } graph_n
+%destructor { delete $$; } graph
+%destructor { delete $$; } atom
+%destructor { delete $$; } rule
+%destructor { delete_vector($$); } link_z
+%destructor { delete_vector($$); } link_n
+%destructor { delete $$; } link
+
+%left "||" "&&"
+%left "==" "\\=" "=<" ">=" '<' '>'
+%left '+' '-'
+%left '*' '/' "mod"
+%left NEG POS ASTERISK
+
+%%
+%start program;
+
+// プログラム全体は文の1以上の繰り返し
+program : statement_n
+			{ p.set_result_yy(new p_node::p_root($1)); }
+		;
+
+// 文の1以上の繰り返しは文の間に.をはさむ
+statement_n	: statement
+				{ $$=new std::vector<p_node::p_base*>(); $$->push_back($1); }
+			| statement_n '.' statement
+				{ $1->push_back($3); $$=$1; }
+			;
+
+// 文は空を許す初期グラフ構造かルール
+statement	: graph_z
+				{ $$=new p_node::p_graphs($1); }
+			| rule
+				{ $$=$1; }
+			;
+
+// 空を許すグラフ構造は空か1以上のグラフ構造
+graph_z	: 
+			{ $$=new std::vector<p_node::p_base*>(); }
+		| graph_n
+			{ $$=$1; }
+		;
+
+// 1以上のグラフ構造はグラフの間に,をはさむ
+graph_n	: graph
+			{ $$=new std::vector<p_node::p_base*>(); $$->push_back($1); }
+		| graph_n ',' graph
+			{ $1->push_back($3); $$=$1; }
+		;
+
+// グラフはアトムツリーか接続
+graph	: atom
+			{ $$=$1; }
+		| link '=' link
+			{ $$=new p_node::p_assign($1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		;
+
+// アトムツリーは 引数なし, 引数にリンクの空を許す繰り返しつき, +-がリンク前についたもの
+atom	: TK_SID
+			{ $$=new p_node::p_atom($1,new std::vector<p_node::p_base*>()); $$->set_loc(@1.end.line,@1.end.column); }
+		| TK_SID '(' link_z ')'
+			{ $$=new p_node::p_atom($1,$3); $$->set_loc(@1.end.line,@1.end.column); }
+		| '+' link %prec POS
+			{ std::vector<p_node::p_base*>* v=new std::vector<p_node::p_base*>(); v->push_back($2); $$=new p_node::p_atom(new std::string("+"),v); $$->set_loc(@1.end.line,@1.end.column); }
+		| '-' link %prec NEG
+			{ std::vector<p_node::p_base*>* v=new std::vector<p_node::p_base*>(); v->push_back($2); $$=new p_node::p_atom(new std::string("-"),v); $$->set_loc(@1.end.line,@1.end.column); }
+		;
+
+// ルールは空を許すグラフ構造を空を許すグラフ構造に書き換える
+rule	: graph_z ":-" graph_z
+			{ $$=new p_node::p_rule($1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		;
+
+// リンクの空を許す繰り返しは空か1以上のリンク繰り返し
+link_z	: 
+			{ $$=new std::vector<p_node::p_base*>(); }
+		| link_n
+			{ $$=$1; }
+		;
+
+// 1以上のリンク繰り返しはリンクの間に,をはさむ
+link_n	: link
+			{ $$=new std::vector<p_node::p_base*>(); $$->push_back($1); }
+		| link_n ',' link
+			{ $1->push_back($3); $$=$1; }
+		;
+
+// リンクは タダの名前, 各即値, 型つきプロセス文脈, アトム(略記によるリンクへの埋め込み), リスト, 各種二項演算, 括弧
+link	: TK_LID
+			{ $$=new p_node::p_link($1); $$->set_loc(@1.end.line,@1.end.column); }
+		| TK_IVAL
+			{ $$=new p_node::p_integer($1); $$->set_loc(@1.end.line,@1.end.column); }
+		| TK_FVAL
+			{ $$=new p_node::p_float($1); $$->set_loc(@1.end.line,@1.end.column); }
+		| TK_SVAL
+			{ $$=new p_node::p_string($1); $$->set_loc(@1.end.line,@1.end.column); }
+		| TK_PID
+			{ $$=new p_node::p_pcontext($1,new std::string("")); $$->set_loc(@1.end.line,@1.end.column); }
+		| TK_PID ':' TK_SID
+			{ $$=new p_node::p_pcontext($1,$3); $$->set_loc(@1.end.line,@1.end.column); }
+		| atom
+			{ $$=$1; }
+		| '[' link_z ']'
+			{ $$=new p_node::p_list($2,NULL); $$->set_loc(@1.end.line,@1.end.column); }
+		| '[' link_n '|' link ']'
+			{ $$=new p_node::p_list($2,$4); $$->set_loc(@1.end.line,@1.end.column); }
+		| link '+' link
+			{ $$=new p_node::p_biop("+",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link '-' link
+			{ $$=new p_node::p_biop("-",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link '*' link
+			{ $$=new p_node::p_biop("*",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link '/' link
+			{ $$=new p_node::p_biop("/",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link "mod" link
+			{ $$=new p_node::p_biop("mod",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link "&&" link
+			{ $$=new p_node::p_biop("&&",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link "||" link
+			{ $$=new p_node::p_biop("||",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link '<' link
+			{ $$=new p_node::p_biop("<",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link '>' link
+			{ $$=new p_node::p_biop(">",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link ">=" link
+			{ $$=new p_node::p_biop(">=",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link "=<" link
+			{ $$=new p_node::p_biop("=<",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link "==" link
+			{ $$=new p_node::p_biop("==",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| link "\\=" link
+			{ $$=new p_node::p_biop("!=",$1,$3); $$->set_loc(@2.end.line,@2.end.column); }
+		| '(' link ')'
+			{ $$=$2; }
+		;
+
+%%
+
+void yy::p_yacc::error(const yy::p_yacc::location_type& loc, const std::string& m)
+{
+	p.error(loc, m);
+}
