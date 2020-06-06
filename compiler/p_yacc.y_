@@ -1,5 +1,5 @@
 %skeleton "lalr1.cc"
-%define "parser_class_name" "p_yacc"
+%define api.parser.class {p_yacc}
 %defines
 
 %{
@@ -15,7 +15,7 @@
 %locations
 
 // %debug
-%error-verbose
+%define parse.error verbose
 
 // Symbols.
 %union
