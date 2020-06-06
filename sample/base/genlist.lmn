@@ -1,0 +1,19 @@
+del(n(X)) :- del(X).
+del([]) :- .
+
+cp(X,del,Z2) :- Z2=X.
+cp(X,Z1,del) :- Z1=X.
+cp(n(X),Z1,Z2) :- cp(X,Z1T,Z2T), Z1=n(Z1T), Z2=n(Z2T).
+cp([],Z1,Z2) :- Z1=[], Z2=[].
+
+eq(n(X),n(Y),Z) :- eq(X,Y,Z).
+eq(n(X),[],Z) :- Z=[], del(X).
+eq([],n(Y),Z) :- Z=[], del(Y).
+eq([],[],Z) :- Z=n([]).
+
+# generate list [L,M)
+R=gen_list(L,M) :- gen_list_if(eq(L1,M1),L2,M2,R), cp(L,L1,L2), cp(M,M1,M2).
+gen_list_if([],L,M,R) :- R=[L1|gen_list(n(L2),M)], cp(L,L1,L2).
+gen_list_if(n([]),L,M,R) :- R=[], del(M), del(L).
+
+result = gen_list(n(n(n([]))), n(n(n(n(n(n(n([])))))))).

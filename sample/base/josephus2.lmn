@@ -1,0 +1,24 @@
+cp(TX,A,B),TX=n(N) :- cp(N,P,Q), A=n(P), B=n(Q).
+cp([],A,B) :- A=[], B=[].
+
+# one skip
+jos(Step,[],TX,Before,R),TX=r(X,Next) :- R=[X|jos(Step,Next,Before)].
+jos(Step,TX,TY,Before,R),TX=n(N),TY=r(X,Next) :- jos(Step,N,Next,Middle,R), r(X,Middle,Before).
+
+# generate ring
+genring([],L,R) :- L=R.
+genring(TX,L,R),TX=n(N) :- R=r(N1,genring(N2,L)), cp(N,N1,N2).
+
+# begin skipping
+jos(Step,Null,Null,R) :- R=[], rm(Step).
+jos(Step,TX,Before,R),TX=r(X,Next) :- jos(Step1,Step2,r(X,Next),Before,R), cp(Step,Step1,Step2).
+
+rm([H|T]) :- rm(H), rm(T).
+rm(n(N)) :- rm(N).
+rm([]) :- .
+
+R=juu(X) :- R=n(n(n(n(n(n(n(n(n(n(X)))))))))).
+R=hyaku(X) :- R=juu(juu(juu(juu(juu(juu(juu(juu(juu(juu(X)))))))))).
+R=sen(X) :- R=hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(X)))))))))).
+
+rm(jos(sen(sen(sen(sen(sen(sen(sen(sen([])))))))),genring(sen(sen([])),X),X)).

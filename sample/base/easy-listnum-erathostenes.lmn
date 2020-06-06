@@ -1,0 +1,64 @@
+
+del(n(X)) :- del(X).
+del([]) :- .
+
+tail(n(X),XH,XT) :- tail(X,XM,XT), n(XM,XH).
+tail([],XH,XT) :- XH=XT.
+
+cp(X,del,Z2) :- Z2=X.
+cp(X,Z1,del) :- Z1=X.
+cp(n(X),Z1,Z2) :- cp(X,Z1T,Z2T), Z1=n(Z1T), Z2=n(Z2T).
+cp([],Z1,Z2) :- Z1=[], Z2=[].
+
+
+add(n(X),Y,Z) :- add(X,Y,ZT), Z=n(ZT).
+add(X,n(Y),Z) :- add(X,Y,ZT), Z=n(ZT).
+add([],Y,Z) :- Z=Y.
+add(X,[],Z) :- Z=X.
+
+mul(X,n(Y),Z) :- cp(X,X1,X2), add(X1,mul(X2,Y),Z).
+mul(X,[],Z) :- del(X), Z=[].
+
+my_mod(X,n(Y),Z) :- my_mod(X,n(YH),I,YT,Z), tail(Y,YH,i(YT,I)).
+my_mod(n(X),n(YH),I,YT,Z) :- my_mod(X,YH,I,YM,Z), n(YM,YT).
+my_mod(X,i(YH,I),I,YT,Z) :- my_mod(X,YH,I,YM,Z), i(YM,I,YT).
+my_mod([],n(YH),I,YT,Z), i(IH,I,IT) :- Z=IH, YT=[], IT=[], del(YH).
+
+
+eq(n(X),n(Y),Z) :- eq(X,Y,Z).
+eq(n(X),[],Z) :- Z=[], del(X).
+eq([],n(Y),Z) :- Z=[], del(Y).
+eq([],[],Z) :- Z=n([]).
+
+gt(n(X),n(Y),Z) :- gt(X,Y,Z).
+gt(n(X),[],Z) :- Z=n([]), del(X).
+gt([],Y,Z) :- Z=[], del(Y).
+
+
+R=eratosthenes(X) :- R=sieve_tail(gen_list(n(n([])),X)).
+R=sieve_tail([]) :- R=[].
+R=sieve_tail([H|T]) :- R=[H1|sieve_tail(sieve(H2,T))], cp(H,H1,H2).
+R=sieve_tail(prime(N,X)) :- R=[N1|sieve_tail(sieve(N2,X))], cp(N,N1,N2).
+R=sieve(N,[]) :- R=[], del(N).
+R=sieve(N,prime(M,X)) :- R=prime(M,sieve(N,X)).
+R=sieve(N,[H|T]) :- sieve_if_0(my_mod(H1,N1),N2,H2,T,R), cp(H,H1,H2), cp(N,N1,N2).
+sieve_if_0(n(M),N,H,T,R) :- sieve_if_1(gt(mul(N1,N2),H1),N3,H2,T,R), del(M), cp(N,N1,NM), cp(NM,N2,N3), cp(H,H1,H2).
+sieve_if_0([]  ,N,H,T,R) :- R=sieve(N,T), del(H).
+sieve_if_1(n([]),N,H,T,R) :- R=prime(H,sieve(N,T)).
+sieve_if_1([]   ,N,H,T,R) :- R=[H|sieve(N,T)].
+
+
+R=gen_list(L,M) :- gen_list_if(eq(L1,M1),L2,M2,R), cp(L,L1,L2), cp(M,M1,M2).
+gen_list_if([],L,M,R) :- R=[L1|gen_list(n(L2),M)], cp(L,L1,L2).
+gen_list_if(n([]),L,M,R) :- R=[], del(M), del(L).
+
+# R=ret(X) :- R=ret(0,X).
+# R=ret(N,n(X)) :- M=N+1 | R=ret(M,X).
+# R=ret(N,[]) :- R=N.
+#
+# R=ret_list([]) :- R=[].
+# R=ret_list([H|T]) :- R=[ret(H)|ret_list(T)].
+
+R=hyaku(T) :- R=n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(n(T)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))).
+
+r = ret_list(eratosthenes(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku([])))))))))).

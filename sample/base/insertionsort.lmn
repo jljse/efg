@@ -1,0 +1,34 @@
+cp(n(N),R1,R2) :- cp(N,S1,S2), R1=n(S1), R2=n(S2).
+cp([],R1,R2) :- R1=[], R2=[].
+R=gt(n(N),n(M)) :- R=gt(N,M).
+R=gt(n(N),[]) :- R=n([]), rm(N).
+R=gt([],X) :- R=[], rm(X).
+Z=eq(n(X),n(Y)) :- eq(X,Y,Z).
+Z=eq(n(X),[]) :- Z=[], rm(X).
+Z=eq([],n(Y)) :- Z=[], rm(Y).
+Z=eq([],[]) :- Z=n([]).
+
+R=insert(X,[]) :- R=[X].
+R=insert(X,[H|T]) :- R=insert_if(gt(X1,H1),X2,H2,T), cp(X,X1,X2), cp(H,H1,H2).
+R=insert_if(n([]),X,H,T) :- R=[H|insert(X,T)].
+R=insert_if([],   X,H,T) :- R=[X,H|T].
+
+R=insertionsort([]) :- R=[].
+R=insertionsort([H|T]) :- R=insert(H,insertionsort(T)).
+
+# R=gen_list(L,M) :- gen_list_if(eq(L1,M1),L2,M2,R), cp(L,L1,L2), cp(M,M1,M2).
+# gen_list_if([],   L,M,R) :- R=[L1|gen_list(n(L2),M)], cp(L,L1,L2).
+# gen_list_if(n([]),L,M,R) :- R=[], rm(M), rm(L).
+R=locked_gen_list(L,[]) :- R=[], L=done.
+R=locked_gen_list(L,n(N)) :- R=[N1|locked_gen_list(L,N2)], cp(N,N1,N2).
+
+rm(n(N)) :- rm(N).
+rm([]) :- .
+
+R=lock(done,X) :- R=X.
+
+R=juu(X) :- R=n(n(n(n(n(n(n(n(n(n(X)))))))))).
+R=hyaku(X) :- R=juu(juu(juu(juu(juu(juu(juu(juu(juu(juu(X)))))))))).
+R=sen(X) :- R=hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(X)))))))))).
+
+result = insertionsort( lock(L,locked_gen_list(L, juu(juu(juu(juu([])))) )) ).

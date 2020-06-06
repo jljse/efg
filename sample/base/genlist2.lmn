@@ -1,0 +1,19 @@
+cp(n(X),Z1,Z2) :- cp(X,Z1T,Z2T), Z1=n(Z1T), Z2=n(Z2T).
+cp([],Z1,Z2) :- Z1=[], Z2=[].
+
+R=locked_genlist(L,[],X) :- R=[], rm(X), L=done.
+R=locked_genlist(L,n(N),X) :- R=[X1|locked_genlist(L,N,X2)], cp(X,X1,X2).
+
+rmlist([H|T]) :- rm(H), rmlist(T).
+rmlist([]) :- .
+
+rm(n(X)) :- rm(X).
+rm([]) :- .
+
+R=lock(done,X) :- R=X.
+
+R=juu(X) :- R=n(n(n(n(n(n(n(n(n(n(X)))))))))).
+R=hyaku(X) :- R=juu(juu(juu(juu(juu(juu(juu(juu(juu(juu(X)))))))))).
+R=sen(X) :- R=hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(X)))))))))).
+
+rmlist( lock(L, locked_genlist(L, juu([]), sen([]))) ).

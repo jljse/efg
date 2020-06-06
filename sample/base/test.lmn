@@ -1,0 +1,29 @@
+# a(X,Y) :- b(X,Y).
+# b(b(X),X) :- c.
+# b(X,X).
+# a(X). b(X).
+
+# a(X),a,a(X) :- b(X),b(X).
+# b(X) :- c(X).
+
+# a(b(X)), b(Y,Y) :- b(X).
+
+# z(X,X) :- z.
+# a(X) :- b(X).
+# b(b) :- c.
+# d(X,Y) :- z(X,Y).
+# z, c :- ok.
+# a(b), d(X,X).
+
+# a :- b(c(d)).
+# c(X,Y) :- X=Y.
+# d(b) :- x.
+# c, x :- ok.
+# a, c.
+
+# init.
+# m_juu = n(n(n(n(n(n(n(n(n(n([])))))))))).
+# init, m_juu(n(J)) :- begin, m_juu(n(J)).
+
+# a(3,$p:int,$q:int,$r:int) :- b($p,$p,$p,$q,c(5)).
+a(3,$p:int,x,y) :- c(0).

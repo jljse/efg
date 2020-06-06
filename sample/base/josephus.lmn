@@ -1,0 +1,29 @@
+cp(n(N),A,B) :- cp(N,P,Q), A=n(P), B=n(Q).
+cp([],A,B) :- A=[], B=[].
+
+# one skip
+jos(Step,[],r(X,Next),Before,R) :- R=[X|jos(Step,Next,Before)].
+jos(Step,n(N),r(X,Next),Before,R) :- jos(Step,N,Next,Middle,R), r(X,Middle,Before).
+
+# generate ring
+genring([],L,R) :- L=R.
+genring(n(N),L,R) :- R=r(N1,genring(N2,L)), cp(N,N1,N2).
+
+# begin skipping
+jos(Step,Null,Null,R) :- R=[], rm(Step).
+jos(Step,r(X,Next),Before,R) :- jos(Step1,Step2,r(X,Next),Before,R), cp(Step,Step1,Step2).
+
+rm([H|T]) :- rm(H), rm(T).
+rm(n(N)) :- rm(N).
+rm([]) :- .
+
+R=n30 :- R=juu(juu(juu([]))).
+R=n40 :- R=juu(juu(juu(juu([])))).
+R=n50 :- R=juu(juu(juu(juu(juu([]))))).
+R=n200 :- R=hyaku(hyaku([])).
+
+R=juu(X) :- R=n(n(n(n(n(n(n(n(n(n(X)))))))))).
+R=hyaku(X) :- R=juu(juu(juu(juu(juu(juu(juu(juu(juu(juu(X)))))))))).
+R=sen(X) :- R=hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(X)))))))))).
+
+r(jos(n30,genring(n200,X),X)).

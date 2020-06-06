@@ -1,0 +1,31 @@
+# append
+R=append([H|T],B) :- R=[H|append(T,B)].
+R=append([],B) :- R=B, done.
+
+# add(Listin, Listout, Targetin, Targetout)  copy list into top of target
+add([a|LI],LO,TI,TO) :- add(LI,M,TI,N), LO=[a|M], TO=[a|N].
+add([],LO,TI,TO) :- LO=[], TO=TI.
+
+# generate  List many times
+R=times([a|N],L) :- R=add(L,L1,times(N,L1)).
+R=times([],L) :- R=[], rm(L).
+
+# append many times
+done, R=append_times([a|N],L) :- R=append_times(N,append(L,[])).
+done, R=append_times([],L) :- R=L.
+
+# rm
+rm([]) :- .
+rm([a|L]) :- rm(L).
+
+R=juu :- R=[a,a,a,a,a,a,a,a,a,a].
+R=hyaku :- R=times(juu,juu).
+R=sen :- R=times(juu,hyaku).
+R=sen(X) :- R=times(X,sen).
+# R=man :- R=times(hyaku,hyaku).
+# R=man(X) :- R=times(X,man).
+
+done.
+#rm( append_times(sen([a,a]), man([a])) ).
+# rm( sen([a,a,a,a]) ), rm( sen([a,a,a,a]) ).
+rm( append_times(sen([a]), sen([a,a,a,a,a])) ).

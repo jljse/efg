@@ -1,0 +1,4 @@
+append([H|T],B,R) :- R=[H|append(T,B)].
+append([],B,R) :- R=B.
+
+append(append([a,b,c],[d,e,f]), append([g,h],[i,j]),result).

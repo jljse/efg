@@ -1,0 +1,21 @@
+# append
+R=append([H|T],B) :- R=[H|append(T,B)].
+R=append([],B) :- R=B, done.
+
+# append many times
+done, R=append_times([a|N],L) :- R=append_times(N,append(L,[])).
+done, R=append_times([],L) :- R=L.
+
+# rm
+rm([]) :- .
+rm([a|L]) :- rm(L).
+
+R=juu(X) :- R=[a,a,a,a,a,a,a,a,a,a|X].
+R=hyaku(X) :- R=juu(juu(juu(juu(juu(juu(juu(juu(juu(juu(X)))))))))).
+R=sen(X) :- R=hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(hyaku(X)))))))))).
+R=man(X) :- R=sen(sen(sen(sen(sen(sen(sen(sen(sen(sen(X)))))))))).
+
+done.
+#rm( append_times(sen([a,a]), man([a])) ).
+# rm( sen([a,a,a,a]) ), rm( sen([a,a,a,a]) ).
+rm( append_times(man([]), man([])) ).

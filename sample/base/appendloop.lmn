@@ -1,0 +1,36 @@
+R=lock(done,X) :- R=X.
+
+cp([],X1,X2) :- X1=[], X2=[].
+cp(n(X),X1,X2) :- cp(X,Y1,Y2), X1=n(Y1), X2=n(Y2).
+
+del([]) :- .
+del(n(N)) :- del(N).
+
+R=locked_times(L,[],X) :- R=[], L=done, del(X).
+R=locked_times(L,n(N),X) :- R=lock(LA,locked_add(LA,X2,locked_times(L,N,X1))), cp(X,X1,X2).
+
+R=locked_add(L,[],B) :- L=done, R=B.
+R=locked_add(L,n(N),B) :- R=n(locked_add(L,N,B)).
+
+R=juu, m_juu=X :- R=X1, m_juu=X2, cp(X,X1,X2).
+R=hyaku, m_hyaku=X :- R=X1, m_hyaku=X2, cp(X,X1,X2).
+R=sen, m_sen=X :- R=X1, m_sen=X2, cp(X,X1,X2).
+R=man, m_man=X :- R=X1, m_man=X2, cp(X,X1,X2).
+
+init.
+m_juu = n(n(n(n(n(n(n(n(n(n([])))))))))).
+m_hyaku = lock(LHYAKU,locked_times(LHYAKU,juu,juu)).
+m_sen = lock(LSEN,locked_times(LSEN,juu,hyaku)).
+m_man = lock(LMAN,locked_times(LMAN,juu,sen)).
+
+init, m_juu(n(J)), m_hyaku(n(H)), m_sen(n(S)), m_man(n(M)) :- begin, m_juu(n(J)), m_hyaku(n(H)), m_sen(n(S)), m_man(n(M)).
+end, m_juu(J), m_hyaku(H), m_sen(S), m_man(M) :- del(J), del(H), del(S), del(M).
+
+R=locked_append(L,[H|T],B) :- R=[H|locked_append(L,T,B)].
+R=locked_append(L,[],B) :- R=B, L=done.
+
+apend_loop(n(N), n(X)) :- append_loop(N, lock(L, locked_append(L, n(X), []))).
+append_loop([], L) :- del(L), end.
+
+begin, m_man(M), m_sen(S) :- append_loop(S1, M1), m_man(M2), m_sen(S2), cp(M,M1,M2), cp(S,S1,S2).
+
