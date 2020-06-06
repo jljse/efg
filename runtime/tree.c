@@ -2,6 +2,7 @@
 #include "utility.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <inttypes.h>
 
 g_tree_node* g_tree_node_new()
 {
@@ -66,7 +67,7 @@ static g_pair g_tree_find_pos_inner(g_tree* t, g_tree_node* parent, int r_or_l, 
   
   if(! current){
     g_pair result;
-    g_pair_init(&result, parent, (void*)r_or_l);
+    g_pair_init(&result, parent, (void*)(intptr_t)r_or_l);
     return result;
   }else{
     /* 今のノードと探すキーを比較 左側が先なら負 */
@@ -78,7 +79,7 @@ static g_pair g_tree_find_pos_inner(g_tree* t, g_tree_node* parent, int r_or_l, 
       return g_tree_find_pos_inner(t, current, 0, key);
     }else{
       g_pair result;
-      g_pair_init(&result, parent, (void*)r_or_l);
+      g_pair_init(&result, parent, (void*)(intptr_t)r_or_l);
       return result;
     }
   }
@@ -94,7 +95,7 @@ g_tree_node* g_tree_find(g_tree* t, void* key)
 {
   g_pair temp = g_tree_find_pos(t, key);
   g_tree_node* parent = temp.first;
-  int r_or_l = (int)temp.second;
+  int r_or_l = (int)(intptr_t)temp.second;
   if(r_or_l){
     if(parent->right){
       return parent->right;
@@ -127,7 +128,7 @@ void g_tree_insert(g_tree* t, void* key, void* val)
 {
   g_pair found = g_tree_find_pos(t, key);
   g_tree_node* parent = found.first;
-  int r_or_l = (int)found.second;
+  int r_or_l = (int)(intptr_t)found.second;
   
   if(r_or_l){
     /* 右側 */

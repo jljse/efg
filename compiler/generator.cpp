@@ -532,12 +532,13 @@ static void generate_operator(const il_node::il_operator* op,
     out << ntimes_space(indent) << "g_enqueue(th, " << s0 << ");" << std::endl; // TODO: ここでファンクタ出せる
     // TODO: ここに命令を追加
   }else if(op->opecode == "p_derefint"){
-    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
-    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
-    il_node::arg_integer* a2 = dynamic_cast<il_node::arg_integer*>(op->arguments[2]);
-    std::string s0 = index_to_varname(a0);
-    std::string s1 = index_to_varname(a1);
-    int s2 = a2->data;
+    assert(0);
+    // il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    // il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    // il_node::arg_integer* a2 = dynamic_cast<il_node::arg_integer*>(op->arguments[2]);
+    // std::string s0 = index_to_varname(a0);
+    // std::string s1 = index_to_varname(a1);
+    // int s2 = a2->data;
   //   out << ntimes_space(indent) << "if(" << s1 << "->pos != " << s2 << "){ " << failure_code << " }" << std::endl;
   //   out << ntimes_space(indent) << "if(" << s1 << "->atom->functor != " << s3 << "){ " << failure_code << " }" << std::endl;
   //   out << ntimes_space(indent) << s0 << " = " << s1 << "->atom;" << std::endl;

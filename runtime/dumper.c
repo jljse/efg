@@ -4,6 +4,7 @@
 #include "dumper.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 /* --------------------------
  * ここから古い実装
@@ -26,10 +27,10 @@ static void dump_atom_raw(struct g_atom* a, g_tree* vlinks)
     if(pos == g_tree_itor_end(vlinks)){
       /* 未表示なら lの相手側を登録(もうlが出てくることは無いため相手側だけでよい) */
       link_num = g_tree_size(vlinks);
-      g_tree_insert(vlinks, l->buddy, (void*)link_num);
+      g_tree_insert(vlinks, l->buddy, (void*)(intptr_t)link_num);
     }else{
       /* 一度表示されていたらそのindexを使う */
-      link_num = (int)pos->val;
+      link_num = (int)(intptr_t)pos->val;
     }
     
     printf("L%d", link_num);
@@ -122,7 +123,7 @@ static void dump_link(g_tree* vatoms, g_tree* vlinks, struct g_link* l)
     g_tree_node* found = g_tree_find(vlinks, l);
     if(found != g_tree_itor_end(vlinks)){
       /* リンクが出力済みなのでその名前を出力 */
-      printf("L%d", (int)found->val);
+      printf("L%d", (int)(intptr_t)found->val);
       return;
     }
   }
@@ -136,7 +137,7 @@ static void dump_link(g_tree* vatoms, g_tree* vlinks, struct g_link* l)
       /* アトムが出力済み or 最終引数以外につながっている ので新しいリンク名として出力 + そのリンク名を登録 */
       int link_num = g_tree_size(vlinks);
       printf("L%d", link_num);
-      g_tree_insert(vlinks, l->buddy, (void*)link_num);
+      g_tree_insert(vlinks, l->buddy, (void*)(intptr_t)link_num);
       return;
     }
   }
