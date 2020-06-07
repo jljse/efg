@@ -22,7 +22,7 @@ p_node::p_root* parser::parse(const string& name)
 
 void parser::error(const yy::location& loc, string s)
 {
-  cout << loc << ": " << s << endl;
+  cerr << loc << ": " << s << endl;
   exit(1);
 }
 

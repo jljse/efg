@@ -1,0 +1,20 @@
+
+R=eratosthenes($x:int) :- R=sieve_tail(gen_list(2, $x)).
+R=sieve_tail([]) :- R=[].
+R=sieve_tail([$h:int|T]) :- R=[$h|sieve_tail(sieve($h,T))].
+R=sieve_tail(prime($n:int,X)) :- R=[$n|sieve_tail(sieve($n,X))].
+R=sieve($n:int,[]) :- R=[].
+R=sieve(N,prime(M,X)) :- R=prime(M,sieve(N,X)).
+R=sieve($n:int,[$h:int|T]) :- R=sieve_if_0($h mod $n == 0, $n, $h, T).
+R=sieve_if_0(0,$n:int,$h:int,T) :- R=sieve_if_1($n*$n > $h, $n, $h, T).
+R=sieve_if_0(1,N,$h:int,T) :- R=sieve(N,T).
+R=sieve_if_1(1,N,H,T) :- R=prime(H,sieve(N,T)).
+R=sieve_if_1(0,N,H,T) :- R=[H|sieve(N,T)].
+
+
+R=gen_list($n:int, $m:int) :- R=gen_list_if($n==$m, $n, $m).
+R=gen_list_if(1, $n:int, $m:int) :- R=[].
+R=gen_list_if(0, $n:int, $m:int) :- R=[$n|gen_list($n+1, $m)].
+
+result = eratosthenes(800).
+
