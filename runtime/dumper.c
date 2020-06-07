@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <string.h>
 
 /* --------------------------
  * ここから古い実装
@@ -72,30 +73,46 @@ void dump_atoms_raw(struct g_thread *th)
  * -------------------------- */
 
 static void dump_atom_inner(g_tree* vatoms, g_tree* vlinks, struct g_atom* a, int is_inplace);
+static void dump_list(g_tree* vatoms, g_tree* vlinks, struct g_atom* dot);
 
 /* アトムの表示優先度を返す 優先度が高いほど大きい値 */
 static int calc_atom_priority(const struct g_atom* a)
 {
   /* TODO: ちゃんと実装 */
-  
-  /* 今は 自分の最終引数が相手の最終引数以外につながっている (=相手側に埋め込みたい) 場合に0, そうでない場合に1を返す 引数がないものは2 */
+  /*
+    引数がないもの : 99
+    値にしかならないもの(true/1, false/1) : 0
+    リスト終端アトム("[]"/1) : 1
+    リスト連結アトム("."/3) : 2
+    相手が整数 : 10
+    自分の最終引数が相手の最終引数以外につながっている (=相手側に埋め込みたい) 場合 : 3
+    それ以外の場合 : 10
+  */
   const struct g_functor* functor = &g_functors[a->functor];
   
   if(functor->arity == 0){
+    return 99;
+  }else if(strcmp(g_symbols[functor->symbol], "true") == 0 && functor->arity == 1) {
+    return 0;
+  }else if(strcmp(g_symbols[functor->symbol], "false") == 0 && functor->arity == 1) {
+    return 0;
+  }else if(strcmp(g_symbols[functor->symbol], "[]") == 0 && functor->arity == 1) {
+    return 1;
+  }else if(strcmp(g_symbols[functor->symbol], ".") == 0 && functor->arity == 3) {
     return 2;
   }else{
     struct g_link* last_arg = a->args[functor->arity-1];
     /* 相手が整数の場合はこっち優先 */
     if (g_isint(last_arg->buddy)){
-      return 1;
+      return 10;
     }
     struct g_atom* next = last_arg->buddy->atom;
     const struct g_functor* next_functor = &g_functors[next->functor];
   
     if(last_arg->buddy->pos != next_functor->arity-1){
-      return 0;
+      return 3;
     }else{
-      return 1;
+      return 10;
     }
   }
 }
@@ -160,15 +177,55 @@ static void dump_link(g_tree* vatoms, g_tree* vlinks, struct g_link* l)
     }
   }
   
+  /* 特殊な出力が可能ならここでする */
+  
+  /* TODO: リストとか全部ここで 性能が悪いので 特殊ファンクタのテーブルを用意するか,generate側で予約語的に扱わないとダメ */
+  {
+    // リスト連結アトムの末尾に繋がっているならリストとして特殊処理を開始する
+    if(strcmp(g_symbols[next_functor->symbol],".") == 0 && next_functor->arity == 3 && l->buddy->pos == 2) {
+      printf("[");
+      dump_list(vatoms, vlinks, next);
+      printf("]");
+      return;
+    }
+  }
+  
   /* アトムはここで表示するので登録(keyのみでいい) */
   g_tree_insert(vatoms, next, NULL);
   
-  /* 特殊な出力が可能ならここでする */
-  
-  /* TODO: リストとか全部ここで 特殊ファンクタのテーブルを用意するか,generate側で予約語的に扱わないとダメ */
-  
   /* それ以外の場合,普通に出力 */
   dump_atom_inner(vatoms, vlinks, next, 1);
+}
+
+// リスト列挙部分の出力処理 dotから列挙されている範囲を出力していく
+static void dump_list(g_tree* vatoms, g_tree* vlinks, struct g_atom* dot)
+{
+  struct g_link* car = dot->args[0];
+  struct g_link* cdr = dot->args[1];
+
+  // dotは表示済み扱いになる
+  g_tree_insert(vatoms, dot, NULL);
+
+  dump_link(vatoms, vlinks, car);
+  
+  if(!g_isint(cdr->buddy)) {
+    struct g_atom* next = cdr->buddy->atom;
+    const struct g_functor* next_functor = &g_functors[next->functor];
+    if(strcmp(g_symbols[next_functor->symbol], ".") == 0 && next_functor->arity == 3 && cdr->buddy->pos == 2) {
+      // リスト列挙続行
+      printf(",");
+      dump_list(vatoms, vlinks, next);
+      return;
+    }if(strcmp(g_symbols[next_functor->symbol], "[]") == 0 && next_functor->arity == 1 && cdr->buddy->pos == 0) {
+      // リスト終端 終端アトムは表示しないでいいので登録だけ
+      g_tree_insert(vatoms, next, NULL);
+      return;
+    }
+  }
+
+  // その他の場合はリストが切れている
+  printf("|");
+  dump_link(vatoms, vlinks, cdr);
 }
 
 /* aを出力, is_inplace==trueなら何かの子としての出力なので最後の引数は出力しない */

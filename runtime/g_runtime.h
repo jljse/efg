@@ -74,6 +74,8 @@ void g_freeatom(struct g_thread*, struct g_atom*);
 /* アトムのある引数として,アトムとリンクを設定する */
 /* void g_setlink(struct g_atom*, int, struct g_link*); */
 #define g_setlink(A,N,L)  do{(A)->args[N]=L; (L)->atom=A; (L)->pos=N;}while(0)
+/* 整数かどうか判定 */
+int g_isint(struct g_link*);
 /* 整数を取得 */
 int g_getint(struct g_link*);
 /* 整数を設定 */
