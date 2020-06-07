@@ -8,63 +8,65 @@
 #include <set>
 #include "il_node.h"
 
-// ½Û´Äinclude²óÈò
+// å¾ªç’°includeå›é¿
 namespace c_node
 {
   class c_atomic;
   class c_link;
 };
 
-// ¥ë¡¼¥ë¤Î¥Ş¥Ã¥Á¥ó¥°À¸À®¾õ¶·
+// ãƒ«ãƒ¼ãƒ«ã®ãƒãƒƒãƒãƒ³ã‚°ç”ŸæˆçŠ¶æ³
 class matching_context
 {
 public:
-  // ¥Ş¥Ã¥Á/À¸À®ºÑ¤ß¤Î¥¢¥È¥à(map:¥¢¥È¥à¥ª¥Ö¥¸¥§¥¯¥È->¤½¤Îindex)
+  // ãƒãƒƒãƒ/ç”Ÿæˆæ¸ˆã¿ã®ã‚¢ãƒˆãƒ (map:ã‚¢ãƒˆãƒ ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ->ãã®index)
   typedef std::map<const c_node::c_atomic*,int> found_atom_type;
   found_atom_type found_atom;
-  // ¥Ş¥Ã¥Á/À¸À®ºÑ¤ß¤Î¥ê¥ó¥¯(map:¥ê¥ó¥¯¥ª¥Ö¥¸¥§¥¯¥È->¤½¤Îindex)
+  // ãƒãƒƒãƒ/ç”Ÿæˆæ¸ˆã¿ã®ãƒªãƒ³ã‚¯(map:ãƒªãƒ³ã‚¯ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ->ãã®index)
   typedef std::map<const c_node::c_link*,int> found_link_type;
   found_link_type found_link;
-  // isbuddy¤Ç¥ë¡¼¥×¤ò¥Á¥§¥Ã¥¯ºÑ¤ß¤Î¥ê¥ó¥¯
+  // isbuddyã§ãƒ«ãƒ¼ãƒ—ã‚’ãƒã‚§ãƒƒã‚¯æ¸ˆã¿ã®ãƒªãƒ³ã‚¯
   std::set<const c_node::c_link*> isbuddy_checked;
   
   int next_index;
 
-  matching_context() { next_index = 0; } // 0ÈÖ¤Ï¼çÆ³¥¢¥È¥à
-  // ³Æ¥Ş¥Ã¥Á¥ó¥°ÂĞ¾İ¤¬¥Ş¥Ã¥Á/À¸À®¤·¤Æ¤¤¤ì¤Ğ¤½¤ì¤Î¤¢¤ëindex¤òÊÖ¤·, ¥Ş¥Ã¥Á/À¸À®¤·¤Æ¤¤¤Ê¤±¤ì¤Ğ-1¤òÊÖ¤¹
+  matching_context() { next_index = 0; } // 0ç•ªã¯ä¸»å°ã‚¢ãƒˆãƒ 
+  // å„ãƒãƒƒãƒãƒ³ã‚°å¯¾è±¡ãŒãƒãƒƒãƒ/ç”Ÿæˆã—ã¦ã„ã‚Œã°ãã‚Œã®ã‚ã‚‹indexã‚’è¿”ã—, ãƒãƒƒãƒ/ç”Ÿæˆã—ã¦ã„ãªã‘ã‚Œã°-1ã‚’è¿”ã™
   int get_index(const c_node::c_atomic* x) const;
   int get_index(const c_node::c_link* x) const;
 
-  // ³ÆÂĞ¾İ¤Ëindex¤ò¤Õ¤ë ½é½Ğ¤Ç¤¢¤ë¤³¤È¤ò´üÂÔ index¤òÊÖ¤¹
+  // å„å¯¾è±¡ã«indexã‚’ãµã‚‹ åˆå‡ºã§ã‚ã‚‹ã“ã¨ã‚’æœŸå¾… indexã‚’è¿”ã™
   int add_index(const c_node::c_atomic* x);
   int add_index(const c_node::c_link* x);
+  // é©å½“ã«ã‚¹ã‚­ãƒƒãƒ—
+  int add_index();
 
-  // ¥ë¡¼¥×¥Á¥§¥Ã¥¯¤¬½ªÎ»¤·¤Æ¤¤¤ë¤«¤É¤¦¤«
+  // ãƒ«ãƒ¼ãƒ—ãƒã‚§ãƒƒã‚¯ãŒçµ‚äº†ã—ã¦ã„ã‚‹ã‹ã©ã†ã‹
   bool is_isbuddy_checked(const c_node::c_link* x);
-  // ¥ë¡¼¥×¥Á¥§¥Ã¥¯ºÑ¤ß¤òµ­Ï¿
+  // ãƒ«ãƒ¼ãƒ—ãƒã‚§ãƒƒã‚¯æ¸ˆã¿ã‚’è¨˜éŒ²
   void add_isbuddy_checked(const c_node::c_link* x);
 };
 
-// ½ĞÎÏ¤¹¤ëil¤ÎÀ¸À®¾õ¶·
+// å‡ºåŠ›ã™ã‚‹ilã®ç”ŸæˆçŠ¶æ³
 class output_il_context
 {
 public:
-  // ½ĞÎÏ¤·¤¿¥ë¡¼¥ë
+  // å‡ºåŠ›ã—ãŸãƒ«ãƒ¼ãƒ«
   std::vector<std::list<il_node::il_operator*>*> result;
-  // ½ĞÎÏÀè¥Ö¥í¥Ã¥¯
+  // å‡ºåŠ›å…ˆãƒ–ãƒ­ãƒƒã‚¯
   std::stack<std::list<il_node::il_operator*>*> block_stack;
   
-  // ¥ë¡¼¥ë½ĞÎÏ¤ò³«»Ï¤¹¤ë
+  // ãƒ«ãƒ¼ãƒ«å‡ºåŠ›ã‚’é–‹å§‹ã™ã‚‹
   void begin_rule();
-  // ½ĞÎÏÃæ¤Î¥ë¡¼¥ë¤ò½ªÎ»¤¹¤ë
+  // å‡ºåŠ›ä¸­ã®ãƒ«ãƒ¼ãƒ«ã‚’çµ‚äº†ã™ã‚‹
   void end_rule();
-  // º£½ĞÎÏÃæ¤Î¥Ö¥í¥Ã¥¯¤ËÌ¿Îá¤ò½ĞÎÏ
+  // ä»Šå‡ºåŠ›ä¸­ã®ãƒ–ãƒ­ãƒƒã‚¯ã«å‘½ä»¤ã‚’å‡ºåŠ›
   void output(il_node::il_operator*);
-  // º£½ĞÎÏÃæ¤Î¥Ö¥í¥Ã¥¯¤ËÌ¿Îá¤ò½ĞÎÏ¤·¤¿¸å,½ĞÎÏÀè¤Î¥Ö¥í¥Ã¥¯¤òÊÑ¹¹¤¹¤ë
+  // ä»Šå‡ºåŠ›ä¸­ã®ãƒ–ãƒ­ãƒƒã‚¯ã«å‘½ä»¤ã‚’å‡ºåŠ›ã—ãŸå¾Œ,å‡ºåŠ›å…ˆã®ãƒ–ãƒ­ãƒƒã‚¯ã‚’å¤‰æ›´ã™ã‚‹
   void output_begin_block(il_node::il_operator*, std::list<il_node::il_operator*>*);
-  // º£½ĞÎÏÃæ¤Î¥Ö¥í¥Ã¥¯¤òÊÄ¤¸,¤½¤ì°ÊÁ°¤Î¥Ö¥í¥Ã¥¯¤Ë½ĞÎÏÀè¤òÊÑ¹¹¤¹¤ë
+  // ä»Šå‡ºåŠ›ä¸­ã®ãƒ–ãƒ­ãƒƒã‚¯ã‚’é–‰ã˜,ãã‚Œä»¥å‰ã®ãƒ–ãƒ­ãƒƒã‚¯ã«å‡ºåŠ›å…ˆã‚’å¤‰æ›´ã™ã‚‹
   void end_block();
-  // ½ĞÎÏ·ë²Ì¤òÆÀ¤ë (°ú¿ô¤ËÍ¿¤¨¤¿vector¤Ëswap¤Ç·ë²Ì¤òÊÖ¤¹)
+  // å‡ºåŠ›çµæœã‚’å¾—ã‚‹ (å¼•æ•°ã«ä¸ãˆãŸvectorã«swapã§çµæœã‚’è¿”ã™)
   void swap_result(std::vector<std::list<il_node::il_operator*>*>&);
 };
 

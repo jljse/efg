@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include "memory_pool.h"
 #include "utility.h"
 #include "tree.h"
@@ -78,12 +79,29 @@ struct g_atom* g_newatom(struct g_thread *th, int f)
   return result;
 }
 
+void g_setint(struct g_link* l, int n)
+{
+  l->pos = G_RESERVED_POS_INTEGER;
+  l->atom = (void*)(intptr_t)n;
+}
+
 struct g_link* g_newlink(struct g_thread *th)
 {
   struct g_link* result = pooled_malloc(th, sizeof(struct g_link));
   result->pos = -1; /* つながっていないことを表す値 */
   result->atom = 0;
   return result;
+}
+
+int g_isint(struct g_link* l)
+{
+  return l->pos == G_RESERVED_POS_INTEGER;
+}
+
+int g_getint(struct g_link* l)
+{
+  assert(g_isint(l));
+  return (int)(intptr_t)l->atom;
 }
 
 /* マクロ化
@@ -96,7 +114,7 @@ void g_freelink(struct g_thread *th, struct g_link* l)
 void g_freeatom(struct g_thread *th, struct g_atom* a)
 {
   /* すでに消えているアトムの抜け殻を消す場合 */
-  if(a->functor == -1){
+  if(a->functor == G_FUNCTOR_DELETED){
     if(! a->is_queued){
       /* 再実行キュー上になければ消せる */
       pooled_free(th, sizeof(struct g_atom), a);
@@ -116,7 +134,7 @@ void g_freeatom(struct g_thread *th, struct g_atom* a)
     
     if(a->is_queued){
       /* 再実行キュー上にある場合は抜け殻として残しておく */
-      a->functor = -1;
+      a->functor = G_FUNCTOR_DELETED;
     }else{
       /* 再実行キュー上になければ全部消せる */
       pooled_free(th, sizeof(struct g_atom), a);

@@ -20,6 +20,12 @@ static void dump_atom_raw(struct g_atom* a, g_tree* vlinks)
   for(i=0; i<functor->arity; ++i){
     if(i != 0) printf(", ");
     struct g_link* l = a->args[i];
+    /* lが数値かどうか調べる */
+    if(g_isint(l)) {
+      printf("%d", g_getint(l));
+      continue;
+    }
+
     /* l が既に表示されていないか調べる */
     g_tree_node* pos = g_tree_find(vlinks, l);
     int link_num;
@@ -79,6 +85,10 @@ static int calc_atom_priority(const struct g_atom* a)
     return 2;
   }else{
     struct g_link* last_arg = a->args[functor->arity-1];
+    /* 相手が整数の場合はこっち優先 */
+    if (g_isint(last_arg->buddy)){
+      return 1;
+    }
     struct g_atom* next = last_arg->buddy->atom;
     const struct g_functor* next_functor = &g_functors[next->functor];
   
@@ -117,13 +127,21 @@ static void dump_link(g_tree* vatoms, g_tree* vlinks, struct g_link* l)
   struct g_atom* next;
   /* そのファンクタ */
   const struct g_functor* next_functor;
-  
+
   /* すでにそのリンクが出力されていれば,その名前を使う */
   {
     g_tree_node* found = g_tree_find(vlinks, l);
     if(found != g_tree_itor_end(vlinks)){
       /* リンクが出力済みなのでその名前を出力 */
       printf("L%d", (int)(intptr_t)found->val);
+      return;
+    }
+  }
+  
+  /* 相手側が整数ならそのまま表示 */
+  {
+    if(g_isint(l->buddy)){
+      printf("%d", g_getint(l->buddy));
       return;
     }
   }

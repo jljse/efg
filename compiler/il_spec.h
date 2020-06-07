@@ -17,9 +17,11 @@ enum SPEC_ARG {
   SPEC_ARG_END,
   SPEC_ARG_USE_LINK,
   SPEC_ARG_USE_ATOM,
+  SPEC_ARG_USE_PC,
   SPEC_ARG_USE_INT,
   SPEC_ARG_SET_LINK,
   SPEC_ARG_SET_ATOM,
+  SPEC_ARG_SET_PC,
   SPEC_ARG_SET_INT,
   SPEC_ARG_INT,
   SPEC_ARG_FUNCTOR,
@@ -54,11 +56,23 @@ enum INSTR {
   INSTR_FUNCTION,
   INSTR_ENQUEUE,
   INSTR_RECALL,
-  INSTR_NEWINT,
-  INSTR_DEREFPC,
   INSTR_COPYPC,
   INSTR_MOVEPC,
+  INSTR_DEREFPC,
   INSTR_FREEPC,
+  INSTR_NEWINT,
+  INSTR_DEREFINT,
+  INSTR_INTADD,
+  INSTR_INTSUB,
+  INSTR_INTMUL,
+  INSTR_INTDIV,
+  INSTR_INTMOD,
+  INSTR_INTEQ,
+  INSTR_INTGT,
+  INSTR_FREEINT,
+  INSTR_SETINT,
+  INSTR_TRUE,
+  INSTR_FALSE,
 };
 
 // 中間命令の仕様
@@ -76,14 +90,15 @@ const il_spec* str_to_spec(const std::string& str);
 const il_spec* enum_to_spec(enum INSTR n);
 
 // @はindex, #は即値, $はファンクタ, {}は入れ子の命令列, ()は不定長引数
-// @a はatom入り, @l はリンク入り, @iは整数入り,
-// @A はそこでアトムを作る, @L はそこでリンクを作る, @Iはそこで整数を作る
+// @a はatom入り, @l はリンク入り, @iは整数入り, @pはプロセスコンテキスト入り
+// @A はそこでアトムを作る, @L はそこでリンクを作る, @Iはそこで整数を作る, @Pはそこでプロセスコンテキストを作る
 // p_がつく命令は失敗の可能性がある
 // 一見SSAっぽいけどbebuddyとかunifyとかいろいろ破綻してる気がする
 
 // [p_notbuddy @l @l] 1と2がbuddyでない
 // [getbuddy @L @l] 1に2のbuddyを代入
 // [p_deref @A @l # $] 2の先のアトムが4で3番目につながっていることを確認したあとアトムを1に代入
+// [p_derefint @I @l] 2の先に(埋め込みで)整数が繋がっていることを確認したあと1に代入
 // [getlink @L @a #] 1に2の3番目のリンクを代入
 // [p_isbuddy @l @l] 1と2がbuddyである
 // [p_findatom @A $ {}] 1に2のアトムを代入,3の実行 を繰り返す
@@ -104,10 +119,11 @@ const il_spec* enum_to_spec(enum INSTR n);
 // [function $] 1のためのルール開始であることの目印
 // [enqueue @a] 1を後で再実行する
 // [recall $ (@l)] 自分を呼び出すが,ループ化してよい命令 functorは必ずそのルールの主導アトムと一致する
-// [newint @l #] 1に2の整数アトムを生成してつなぐ
-// [p_derefpc @A @l ?] 2の先のプロセス文脈が3にマッチしていることを確認して1に代入
-// [copypc @l @a ?] 1に2のプロセス文脈(種類は3)をコピーしてつなぐ
-// [movepc @l @a ?] 1に2のプロセス文脈(種類は3)を引き継いでつなぐ
-// [freepc @a ?] 1のプロセス文脈(種類は3)を削除
+// [newint @l #] 1の中に2の整数を埋め込む
+// [freeint @i] 1の整数を消す(埋め込みなので何もしないけど)
+// [p_derefpc @P @l ?] 2の先のプロセス文脈が3にマッチしていることを確認して1に代入
+// [copypc @l @p ?] 1に2のプロセス文脈(種類は3)をコピーしてつなぐ
+// [movepc @l @p ?] 1に2のプロセス文脈(種類は3)を引き継いでつなぐ
+// [freepc @p ?] 1のプロセス文脈(種類は2)を削除
 #endif
 

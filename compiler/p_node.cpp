@@ -225,6 +225,18 @@ void p_rule::to_c_node_as_root(p_to_c_context& c) const
                 << "."
                 << std::endl;
     }
+    if(it->type == "int"){
+      // 整数型 OK
+    } else {
+      // それ以外はダメ
+      error_flag = true;
+      std::cerr << "unknwon type process context \""
+                << it->name << ":" << it->type
+                << "\" at "
+                << it->loc
+                << "."
+                << std::endl;
+    }
     if(pcontext_head_mapping.find(it->name) != pcontext_head_mapping.end()){
       // 同じ名前をヘッドで2回使っている場合エラー
       error_flag = true;

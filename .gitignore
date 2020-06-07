@@ -21,6 +21,6 @@ compile
 runtime/Makefile
 runtime/Makefile.in
 *.a
-input/base/gmon.out
-input/base/*.c
-/gmon.out
+sample/**/*.c
+gmon.out
+

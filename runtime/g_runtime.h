@@ -1,6 +1,18 @@
 #ifndef G_RUNTIME_H_INCLUDED
 #define G_RUNTIME_H_INCLUDED
 
+enum g_reserved_functor
+{
+    /* 削除済み */
+    G_FUNCTOR_DELETED = -1,
+};
+
+enum g_reserved_pos
+{
+    /* 整数 */
+    G_RESERVED_POS_INTEGER = -1,
+};
+
 /* ファンクタ構造体 */
 struct g_functor
 {
@@ -62,6 +74,10 @@ void g_freeatom(struct g_thread*, struct g_atom*);
 /* アトムのある引数として,アトムとリンクを設定する */
 /* void g_setlink(struct g_atom*, int, struct g_link*); */
 #define g_setlink(A,N,L)  do{(A)->args[N]=L; (L)->atom=A; (L)->pos=N;}while(0)
+/* 整数を取得 */
+int g_getint(struct g_link*);
+/* 整数を設定 */
+void g_setint(struct g_link*, int);
 /* 実行が中断したアトムを後回しにする */
 void g_enqueue(struct g_thread*, struct g_atom*);
 /* あるファンクタのイテレータを取得 */

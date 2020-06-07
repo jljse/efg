@@ -4,6 +4,7 @@
 #include <sstream>
 #include <cassert>
 #include <map>
+#include <iostream>
 #include "il_spec.h"
 #include "utility.h"
 
@@ -51,6 +52,7 @@ enum VARS_TYPE {
   VARS_TYPE_UNKNOWN,
   VARS_TYPE_LINK,
   VARS_TYPE_ATOM,
+  VARS_TYPE_INTEGER,
 };
 
 // 中間変数の情報
@@ -72,10 +74,15 @@ public:
   
   // parentを親ブロックとし,その変数の環境を(一部)引き継ぐ
   void inherit_vars(const vars_type_context& parent);
+  // このブロックで,あるindexの変数を整数変数として代入する
+  void set_integer(il_node::arg_index*);
   // このブロックで,あるindexの変数をリンクとして代入する
   void set_link(il_node::arg_index*);
   // このブロックで,あるindexの変数をアトムとして代入する
   void set_atom(il_node::arg_index*, il_node::arg_functor*);
+
+  // このブロックで,あるindexの変数を整数変数として使用する
+  void use_integer(il_node::arg_index*);
   // このブロックで,あるindexの変数をリンクとして使用する
   void use_link(il_node::arg_index*);
   // このブロックで,あるindexの変数をアトムとして使用する
@@ -166,6 +173,37 @@ void vars_type_context::set_atom(il_node::arg_index* arg, il_node::arg_functor* 
   }
 }
 
+void vars_type_context::set_integer(il_node::arg_index* arg)
+{
+  if(data.size() <= static_cast<unsigned int>(arg->index)) data.resize(arg->index + 1);
+  
+  int index = arg->index;
+  
+  if(data[index].already_declared){
+    // 外で宣言済みの変数の場合, 型が違っていても再宣言すればOK
+    if(data[index].type != VARS_TYPE_INTEGER){
+      data[index].already_declared = false;
+      data[index].type = VARS_TYPE_INTEGER;
+      data[index].functor_type = -1;
+    }
+    // 一致しているならそのまま使うので何もしないでよい
+  }else{
+    // このブロックで宣言した変数の場合, 型の食い違いは困る
+    if(data[index].type == VARS_TYPE_INTEGER){
+      // 一致していれば文句なし
+    }else if(data[index].type == VARS_TYPE_UNKNOWN){
+      // 未使用なら問題なし
+      data[index].type = VARS_TYPE_INTEGER;
+      data[index].functor_type = -1;
+    }else{
+      // それ以外の場合型が不一致である
+      // 正しく命令が吐けていればそんなことは無いはずだが
+      assert(0);
+    }
+  }
+}
+
+
 void vars_type_context::use_link(il_node::arg_index* arg)
 {
   if(data.size() <= static_cast<unsigned int>(arg->index)) data.resize(arg->index + 1);
@@ -225,6 +263,37 @@ void vars_type_context::use_atom(il_node::arg_index* arg)
   }
 }
 
+void vars_type_context::use_integer(il_node::arg_index* arg)
+{
+  if(data.size() <= static_cast<unsigned int>(arg->index)) data.resize(arg->index + 1);
+
+  int index = arg->index;
+  
+  if(data[index].already_declared){
+    // 外で宣言済みの変数の場合, 型が違っていても再宣言すればOK
+    if(data[index].type != VARS_TYPE_INTEGER){
+      data[index].already_declared = false;
+      data[index].type = VARS_TYPE_INTEGER;
+      data[index].functor_type = -1;
+    }
+    // 一致しているならそのまま使うので何もしないでよい
+  }else{
+    // このブロックで宣言した変数の場合, 型の食い違いは困る
+    if(data[index].type == VARS_TYPE_INTEGER){
+      // 一致していれば文句なし
+    }else if(data[index].type == VARS_TYPE_UNKNOWN){
+      // 未使用なら問題なし
+      data[index].type = VARS_TYPE_INTEGER;
+    }else{
+      // それ以外の場合型が不一致である
+      // 正しく命令が吐けていればそんなことは無いはずだが
+      std::cerr << "variable type check error : var[" << index << "] was " << data[index].type << " but become integer " << std::endl;
+      assert(0);
+    }
+  }
+}
+
+
 // 文字列を, ""でくくられた文字列リテラルとして適当な形にする(""自体は含めない)
 static void escape_string_literal(std::string& s)
 {
@@ -253,11 +322,11 @@ static std::string functor_to_signature_naive(const std::string& name, int arity
 {
   std::stringstream ss;
   
-  // + - * / . [] だけは例外 これらは適当な名前に変える
+  // + - * / . [] = < > だけは例外 これらは適当な名前に変える
   if(name == "+"){
     ss << "gr__plus";
   }else if(name == "-"){
-    ss << "gr__gminus";
+    ss << "gr__minus";
   }else if(name == "*"){
     ss << "gr__mul";
   }else if(name == "/"){
@@ -266,12 +335,29 @@ static std::string functor_to_signature_naive(const std::string& name, int arity
     ss << "gr__dot";
   }else if(name == "[]"){
     ss << "gr__nil";
+  }else if(name == "=="){
+    ss << "gr__eq";
+  }else if(name == "\\="){
+    ss << "gr__neq";
+  }else if(name == ">="){
+    ss << "gr__ge";
+  }else if(name == ">"){
+    ss << "gr__gt";
+  }else if(name == "<="){
+    ss << "gr__le";
+  }else if(name == "<"){
+    ss << "gr__lt";
   }else{
     ss << "gr_" << name;
   }
   
   ss << "_" << arity;
   return ss.str();
+}
+
+static std::string functor_to_signature_naive(literal_table& lt, int functor)
+{
+  return functor_to_signature_naive(lt.symbols[lt.functors[functor].first], lt.functors[functor].second);
 }
 
 // ファンクタを関数シグネチャの形に変換する
@@ -532,18 +618,141 @@ static void generate_operator(const il_node::il_operator* op,
     out << ntimes_space(indent) << "g_enqueue(th, " << s0 << ");" << std::endl; // TODO: ここでファンクタ出せる
     // TODO: ここに命令を追加
   }else if(op->opecode == "p_derefint"){
-    assert(0);
-    // il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
-    // il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
-    // il_node::arg_integer* a2 = dynamic_cast<il_node::arg_integer*>(op->arguments[2]);
-    // std::string s0 = index_to_varname(a0);
-    // std::string s1 = index_to_varname(a1);
-    // int s2 = a2->data;
-  //   out << ntimes_space(indent) << "if(" << s1 << "->pos != " << s2 << "){ " << failure_code << " }" << std::endl;
-  //   out << ntimes_space(indent) << "if(" << s1 << "->atom->functor != " << s3 << "){ " << failure_code << " }" << std::endl;
-  //   out << ntimes_space(indent) << s0 << " = " << s1 << "->atom;" << std::endl;
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    out << ntimes_space(indent) << "if(" << s1 << "->pos != G_RESERVED_POS_INTEGER){ " << failure_code << " }" << std::endl;
+    out << ntimes_space(indent) << s0 << " = g_getint(" << s1 << ");" << std::endl;
+  }else if(op->opecode == "setint"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    out << ntimes_space(indent) << "g_setint(" << s0 << ", " << s1 << ");" << std::endl;
+  }else if(op->opecode == "inteq"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_index* a2 = dynamic_cast<il_node::arg_index*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    std::string s2 = index_to_varname(a2);
+    out << ntimes_space(indent) << s0 << " = " << s1 << " == " << s2 << ";" << std::endl;
+  }else if(op->opecode == "intgt"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_index* a2 = dynamic_cast<il_node::arg_index*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    std::string s2 = index_to_varname(a2);
+    out << ntimes_space(indent) << s0 << " = " << s1 << " > " << s2 << ";" << std::endl;
+  }else if(op->opecode == "intadd"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_index* a2 = dynamic_cast<il_node::arg_index*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    std::string s2 = index_to_varname(a2);
+    out << ntimes_space(indent) << s0 << " = " << s1 << " + " << s2 << ";" << std::endl;
+  }else if(op->opecode == "intsub"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_index* a2 = dynamic_cast<il_node::arg_index*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    std::string s2 = index_to_varname(a2);
+    out << ntimes_space(indent) << s0 << " = " << s1 << " - " << s2 << ";" << std::endl;
+  }else if(op->opecode == "intmul"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_index* a2 = dynamic_cast<il_node::arg_index*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    std::string s2 = index_to_varname(a2);
+    out << ntimes_space(indent) << s0 << " = " << s1 << " * " << s2 << ";" << std::endl;
+  }else if(op->opecode == "intdiv"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_index* a2 = dynamic_cast<il_node::arg_index*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    std::string s2 = index_to_varname(a2);
+    out << ntimes_space(indent) << s0 << " = " << s1 << " / " << s2 << ";" << std::endl;
+  }else if(op->opecode == "intmod"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_index* a2 = dynamic_cast<il_node::arg_index*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    std::string s2 = index_to_varname(a2);
+    out << ntimes_space(indent) << s0 << " = " << s1 << " % " << s2 << ";" << std::endl;
+  }else if(op->opecode == "newint"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_integer* a1 = dynamic_cast<il_node::arg_integer*>(op->arguments[1]);
+    std::string s0 = index_to_varname(a0);
+    int s1 = a1->data;
+    out << ntimes_space(indent) << s0 << " = " << s1 << ";" << std::endl;
+  }else if(op->opecode == "p_true"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    std::string s0 = index_to_varname(a0);
+    out << ntimes_space(indent) << "if(!" << s0 << "){ " << failure_code << " }" << std::endl;
+  }else if(op->opecode == "p_false"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    std::string s0 = index_to_varname(a0);
+    out << ntimes_space(indent) << "if(" << s0 << "){ " << failure_code << " }" << std::endl;
+  }else if(op->opecode == "freeint"){
+    // 何もしないでいいはず
+  }else if(op->opecode == "p_derefpc"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_pcontext* a2 = dynamic_cast<il_node::arg_pcontext*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    
+    // 今はintだけ
+    if(a2->type == "int") {
+      out << ntimes_space(indent) << "if(" << s1 << "->pos != G_RESERVED_POS_INTEGER){ " << failure_code << " }" << std::endl;
+      out << ntimes_space(indent) << s0 << " = g_getint(" << s1 << ");" << std::endl;
+    } else {
+      assert(0);
+    }
+  }else if(op->opecode == "movepc"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_pcontext* a2 = dynamic_cast<il_node::arg_pcontext*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    // 今はintだけ
+    if(a2->type == "int") {
+      out << ntimes_space(indent) << "g_setint(" << s0 << ", " << s1 << ");" << std::endl;
+    } else {
+      assert(0);
+    }
+  }else if(op->opecode == "copypc"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_index* a1 = dynamic_cast<il_node::arg_index*>(op->arguments[1]);
+    il_node::arg_pcontext* a2 = dynamic_cast<il_node::arg_pcontext*>(op->arguments[2]);
+    std::string s0 = index_to_varname(a0);
+    std::string s1 = index_to_varname(a1);
+    // 今はintだけ
+    if(a2->type == "int") {
+      out << ntimes_space(indent) << "g_setint(" << s0 << ", " << s1 << ");" << std::endl;
+    } else {
+      assert(0);
+    }
+  }else if(op->opecode == "freepc"){
+    il_node::arg_index* a0 = dynamic_cast<il_node::arg_index*>(op->arguments[0]);
+    il_node::arg_pcontext* a1 = dynamic_cast<il_node::arg_pcontext*>(op->arguments[1]);
+    std::string s0 = index_to_varname(a0);
+    // 今はintだけ
+    if(a1->type == "int") {
+      // 何もしないでOK
+    } else {
+      assert(0);
+    }
   }else{
     // 知らない命令
+    std::cerr << "unknown operator : " << op->opecode << std::endl;
     assert(0);
   }
 }
@@ -578,6 +787,10 @@ static void pickup_vars_type(const il_node::il_operator* op,
 
   // その命令の型情報を取得
   const il_spec* sp = str_to_spec(op->opecode);
+  if(sp == NULL) {
+    std::cerr << "spec is not defined : " << op->opecode << std::endl;
+    assert(0);
+  }
   // 各引数について
   for(int i=0; sp->arg[i]!=SPEC_ARG_END; ++i){
     switch(sp->arg[i]){
@@ -593,6 +806,13 @@ static void pickup_vars_type(const il_node::il_operator* op,
       // そのindexをアトムとして使っていることを登録
       vtc.use_atom(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
       break;
+    case SPEC_ARG_USE_INT:
+      // 引数は整数変数を表している = 引数はindexのはず
+      assert(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+      // そのindexをリンクとして使っていることを登録
+      vtc.use_integer(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+      break;
+
     case SPEC_ARG_SET_LINK:
       // 引数はリンクを表している = 引数はindexのはず
       assert(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
@@ -622,6 +842,52 @@ static void pickup_vars_type(const il_node::il_operator* op,
         }
       }
       break;
+    case SPEC_ARG_SET_INT:
+      // 引数は整数変数を表している = 引数はindexのはず
+      assert(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+      // そのindexを整数変数として作成していることを登録
+      vtc.set_integer(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+      break;
+
+    case SPEC_ARG_USE_PC:
+      // 引数はプロセスコンテキストを表している = 引数はindexのはず
+      assert(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+      // 型によって変数を変える 設計失敗してるな…ここでは引数には触りたくないのに…
+      if(op->opecode == "p_derefpc"){
+        // この命令の場合は型は2に入ってる
+        il_node::arg_pcontext* pctype = dynamic_cast<il_node::arg_pcontext*>(op->arguments[2]);
+        assert(pctype != NULL);
+        if(pctype->type == "int"){
+          // そのindexを整数として使っていることを登録
+          vtc.use_integer(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+        }else{
+          // 非対応
+          assert(0);
+        }
+      }
+      break;
+
+    case SPEC_ARG_SET_PC:
+      // 引数はプロセスコンテキストを表している = 引数はindexのはず
+      assert(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+      // 型によって変数を変える 設計失敗してるな…ここでは引数には触りたくないのに…
+      if(op->opecode == "p_derefpc"){
+        // この命令の場合は型は2に入ってる
+        il_node::arg_pcontext* pctype = dynamic_cast<il_node::arg_pcontext*>(op->arguments[2]);
+        assert(pctype != NULL);
+        if(pctype->type == "int"){
+          // そのindexを整数として作成していることを登録
+          vtc.set_integer(dynamic_cast<il_node::arg_index*>(op->arguments[i]));
+        }else{
+          // 非対応
+          assert(0);
+        }
+      } else {
+        // 他の命令では出てこないはず
+        assert(0);
+      }
+      break;
+
     case SPEC_ARG_LINKS:
       // 引数はリンクのみが複数個入っているはず
       {
@@ -696,6 +962,11 @@ void generate_vars_declaration(vars_type_context& vtc,
           out << ntimes_space(indent) << "struct g_atom* " << index_to_varname(i) << ";  /* " << lt.symbols[f.first] << ":" << f.second << " */" << std::endl;
           is_declaration_here = true;
         }
+        break;
+      case VARS_TYPE_INTEGER:
+        // 整数の場合
+        out << ntimes_space(indent) << "int " << index_to_varname(i) << ";" << std::endl;
+        is_declaration_here = true;
         break;
       case VARS_TYPE_UNKNOWN:
         // 未知の場合 ... 多分子ブロックで使うのだろうからスルー
@@ -810,7 +1081,7 @@ static void generate_literals(const il_node::il_root* in,
     
     out << "\t{" << lt.functors[i].first << "," 
                  << lt.functors[i].second << ","
-                 << functor_to_signature_naive(lt.symbols[lt.functors[i].first], lt.functors[i].second) << "}";
+                 << functor_to_signature_naive(lt, i) << "}";
   }
   out << std::endl << "};" << std::endl << std::endl;
 }

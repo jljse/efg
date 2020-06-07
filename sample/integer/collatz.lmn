@@ -1,0 +1,10 @@
+R=collatz($n:int) :- R=collatz_fin($n == 1, $n).
+
+R=collatz_fin(0, $n:int) :- R=[$n|collatz_step($n mod 2 == 0, $n)].
+R=collatz_fin(1, $n:int) :- R=[$n].
+
+R=collatz_step(1, $n:int) :- R=collatz($n / 2).
+R=collatz_step(0, $n:int) :- R=collatz($n * 3 + 1).
+
+collaz27=collatz(27).
+

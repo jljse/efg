@@ -144,12 +144,12 @@ void c_node::c_atom::compile_head_child(matching_context& mcontext, output_il_co
     if(it->first == static_cast<const c_node::c_atomic*>(this)) continue; // 自分自身は飛ばす (c_atomicとしてのポインタで比較)
     if(const c_node::c_atom* x = dynamic_cast<const c_node::c_atom*>(it->first)){
       if(this->arguments.size()==x->arguments.size() && this->name==x->name){
-	if(mcontext.get_index(x->arguments[pos]->buddy) == -1){
-	  // OUTPUT: [notbuddy]
-	  ocontext.output(new il_node::il_operator("p_notbuddy",
-						   new il_node::arg_index(mcontext.get_index(this->arguments[pos])),
-						   new il_node::arg_index(mcontext.get_index(x->arguments[pos]))));
-	}
+        if(mcontext.get_index(x->arguments[pos]->buddy) == -1){
+          // OUTPUT: [notbuddy]
+          ocontext.output(new il_node::il_operator("p_notbuddy",
+                                                   new il_node::arg_index(mcontext.get_index(this->arguments[pos])),
+                                                   new il_node::arg_index(mcontext.get_index(x->arguments[pos]))));
+        }
       }
     }
   }
@@ -159,10 +159,10 @@ void c_node::c_atom::compile_head_child(matching_context& mcontext, output_il_co
   
   //OUTPUT: [deref]
   ocontext.output(new il_node::il_operator("p_deref",
-					   new il_node::arg_index(mcontext.get_index(this)),
-					   new il_node::arg_index(mcontext.get_index(this->arguments[pos])),
-					   new il_node::arg_integer(pos),
-					   new il_node::arg_functor(this->name, this->arguments.size())));
+                                           new il_node::arg_index(mcontext.get_index(this)),
+                                           new il_node::arg_index(mcontext.get_index(this->arguments[pos])),
+                                           new il_node::arg_integer(pos),
+                                           new il_node::arg_functor(this->name, this->arguments.size())));
 
   // 各引数をgetlink
   for(unsigned int i=0; i<this->arguments.size(); ++i){
@@ -206,10 +206,25 @@ void c_node::c_integer::compile_head_child(matching_context& mcontext, output_il
   mcontext.add_index(this);
   
   // 整数をマッチ
+  // OUTPUT: [p_derefint]
   ocontext.output(new il_node::il_operator("p_derefint",
-					   new il_node::arg_index(mcontext.get_index(this)),
-					   new il_node::arg_index(mcontext.get_index(this->arguments[pos])),
-					   new il_node::arg_integer(this->data)));
+                                           new il_node::arg_index(mcontext.get_index(this)),
+                                           new il_node::arg_index(mcontext.get_index(this->arguments[pos]))));
+  int tempvarindex1 = mcontext.add_index();
+  // OUTPUT: [newint]  :: マッチングの途中でnewintは相当気持ち悪いけどこれでいいのか？
+  ocontext.output(new il_node::il_operator("newint",
+                                           new il_node::arg_index(tempvarindex1),
+                                           new il_node::arg_integer(this->data)));
+  int tempvarindex2 = mcontext.add_index();
+  // OUTPUT: [inteq]  :: これも中でnewintしてる感じ 実装が透けてて気持ち悪い
+  ocontext.output(new il_node::il_operator("inteq",
+                                           new il_node::arg_index(tempvarindex2),
+                                           new il_node::arg_index(mcontext.get_index(this)),
+                                           new il_node::arg_index(tempvarindex1)));
+  // OUTPUT: [p_true]
+  ocontext.output(new il_node::il_operator("p_true",
+                                           new il_node::arg_index(tempvarindex2)));
+
 }
 
 void c_node::c_integer::compile_body_delete(const matching_context& mcontext, output_il_context& ocontext) const
@@ -225,9 +240,9 @@ void c_node::c_pcontext::compile_head_child(matching_context& mcontext, output_i
   
   // プロセス文脈を取得
   ocontext.output(new il_node::il_operator("p_derefpc",
-					   new il_node::arg_index(mcontext.get_index(this)),
-					   new il_node::arg_index(mcontext.get_index(this->arguments[pos])),
-					   new il_node::arg_pcontext(this->type)));
+                                           new il_node::arg_index(mcontext.get_index(this)),
+                                           new il_node::arg_index(mcontext.get_index(this->arguments[pos])),
+                                           new il_node::arg_pcontext(this->type)));
 }
 
 void c_node::c_pcontext::compile_body_delete(const matching_context& mcontext, output_il_context& ocontext) const
@@ -246,8 +261,8 @@ void c_node::c_link::compile_head(matching_context& mcontext, output_il_context&
     // 先に到達した側でだけ検査する
     if(mcontext.is_isbuddy_checked(this)){
       ocontext.output(new il_node::il_operator("p_isbuddy",
-					       new il_node::arg_index(mcontext.get_index(this)),
-					       new il_node::arg_index(mcontext.get_index(this->buddy))));
+                                               new il_node::arg_index(mcontext.get_index(this)),
+                                               new il_node::arg_index(mcontext.get_index(this->buddy))));
       mcontext.add_isbuddy_checked(this);
       mcontext.add_isbuddy_checked(this->buddy);
     }

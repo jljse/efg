@@ -1,0 +1,10 @@
+a($p:int) :- b($p).
+b($p:int) :- b($p,$p+1).
+b($p:int, $q:int) :- c($q+1, $p).
+c($p:int, $q:int) :- c($p>$q, $p, $q).
+c(1, $p:int, $q:int) :- c($p, $q+1).
+c(0, $p:int, $q:int) :- d($p, $q).
+
+a(5).
+
+

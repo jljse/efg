@@ -25,6 +25,12 @@ int matching_context::get_index(const c_node::c_link* x) const
   }
 }
 
+int matching_context::add_index()
+{
+  int result = next_index++;
+  return result;
+}
+
 int matching_context::add_index(const c_node::c_atomic* x)
 {
   int result = next_index++;
@@ -51,18 +57,18 @@ void matching_context::add_isbuddy_checked(const c_node::c_link* x)
 
 void output_il_context::begin_rule()
 {
-  // Á°¤Î¥ë¡¼¥ë¤¬¤Á¤ã¤ó¤È½ªÎ»¤·¤Æ¤¤¤Ê¤¤
+  // ï¿½ï¿½ï¿½Î¥ë¡¼ï¿½ë¤¬ï¿½ï¿½ï¿½ï¿½ï¿½È½ï¿½Î»ï¿½ï¿½ï¿½Æ¤ï¿½ï¿½Ê¤ï¿½
   assert(block_stack.size() == 0);
 
-  // result¤Ë¿·¤·¤¤½ÐÎÏÀè¥ë¡¼¥ë¤ò1¤ÄÁý¤ä¤¹
+  // resultï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë¡¼ï¿½ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ä¤¹
   result.push_back(new list<il_node::il_operator*>());
-  // ½ÐÎÏÀè¥Ö¥í¥Ã¥¯¤È¤·¤Æº£Áý¤ä¤·¤¿¥ë¡¼¥ë¤ò»È¤¦
+  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¥ï¿½ï¿½Ã¥ï¿½ï¿½È¤ï¿½ï¿½Æºï¿½ï¿½ï¿½ï¿½ä¤·ï¿½ï¿½ï¿½ë¡¼ï¿½ï¿½ï¿½È¤ï¿½
   block_stack.push(result.back());
 }
 
 void output_il_context::end_rule()
 {
-  // ¥Ö¥í¥Ã¥¯¤òÁ´ÉôÊÄ¤¸¤ë¤¿¤á¤Ë¤Þ¤Ã¤µ¤é¤Îstack¤Ç¾å½ñ¤­¤¹¤ë
+  // ï¿½Ö¥ï¿½ï¿½Ã¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¤ï¿½ï¿½ë¤¿ï¿½ï¿½Ë¤Þ¤Ã¤ï¿½ï¿½ï¿½ï¿½stackï¿½Ç¾ï¿½ñ¤­¤ï¿½ï¿½ï¿½
   block_stack = stack<list<il_node::il_operator*>*>();
 }
 
@@ -84,10 +90,10 @@ void output_il_context::end_block()
 
 void output_il_context::swap_result(vector<list<il_node::il_operator*>*>& out)
 {
-  // °ì±þÊÄ¤¸¤Æ¤¤¤ë¤³¤È¤ò³ÎÇ§
+  // ï¿½ï¿½ï¿½ï¿½Ä¤ï¿½ï¿½Æ¤ï¿½ï¿½ë¤³ï¿½È¤ï¿½ï¿½Ç§
   assert(block_stack.size() == 0);
 
-  // result¤ò°ú¿ô¤Îvector¤Ë°Ü¤¹
+  // resultï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½vectorï¿½Ë°Ü¤ï¿½
   out.swap(result);
 }
 
